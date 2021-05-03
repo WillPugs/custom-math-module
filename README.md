@@ -1,4 +1,4 @@
-# custom_math_module
+# custom-math-module
 The my_math module is a custom module with mathematical functions and classes designed to facilitate work on my other projects.
 
 Contains functions pertaining to primes: primes less than N, primality tests.

@@ -509,7 +509,7 @@ def variance(data):
     return standard_dev(data)**2
 
 def standard_error(data, std=None):
-    """ (list) -> (float)
+    """ (list, float/None) -> (float)
     Returns the standard error of the values in data.
     
     >>> ex = [0.1, 0.4, 0.6, 0.8, 1.1, 1.2, 1.3, 1.5, 1.7, 1.9, 1.9, 2.0, 2.2, 2.6, 3.2]

@@ -1,735 +1,1052 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[19]:
-
-
-import math
-import copy
-
-
-# <h3>Primes</h3>
-
-# In[93]:
-
-
-def primality_brute(N):
-    """(int) -> (boolean)
-    Does a brute force test of primailty by checking the divisibility of N by all integers less than sqrt(N).
-    """
-    if N == 1: #1 is not a prime by definition
-        return False
-    
-    if type(N) != int: #nonintegers cannot be prime
-        raise TypeError("N must be an integer.")
-    
-    stop = math.sqrt(N) #stop point
-    i = 2
-    while i <= stop:
-        if N % i == 0: #if i divides N
-            return False
-        i += 1
-    return True
-
-
-
-def primes_less_than(N):
-    """ (int) -> (list)
-    Returns a list of all prime numbers <N
-    
-    >>> primes_less_than(4)
-    [2, 3]
-    
-    >>> primes_less_than(10)
-    [2, 3, 5, 7]
-    
-    >>> primes_less_than(1000)
-    [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 
-    101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 
-    197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 
-    311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 
-    431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541, 547, 
-    557, 563, 569, 571, 577, 587, 593, 599, 601, 607, 613, 617, 619, 631, 641, 643, 647, 653, 659, 
-    661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739, 743, 751, 757, 761, 769, 773, 787, 797, 
-    809, 811, 821, 823, 827, 829, 839, 853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919, 929, 
-    937, 941, 947, 953, 967, 971, 977, 983, 991, 997]
-
-    """
-    primes = list(range(2, N))
-    
-    for x in primes: #iterates through primes
-        multiples = 2
-        while multiples*x < N: #removes all multiples of x from list of primes
-            if multiples*x in primes:
-                primes.remove(multiples*x)
-            multiples += 1
-    
-    return primes
-
-
-# In[94]:
-
-
-### Code for implementing the method of repeated squares in determining a^m % n
-
-def powers_of_two(num):
-    """ (int) -> (list)
-    Returns num as a sum of powers of two.
-    
-    >>> powers_of_two(6)
-    [1, 2]
-    
-    >>> powers_of_two(57)
-    [0, 3, 4, 5]
-    """
-    num_bin = bin(num)[2:] #converts num to a binary string and remvoes '0b' at the front
-    
-    exponents = []
-    for pos in range(len(num_bin)): #iterates backwards through the string
-        if num_bin[len(num_bin) - 1 - pos] != '0':
-            exponents.append(pos)
-    
-    return exponents
-
-
-def helper_modulo(base, exponent, modulo):
-    """ (int, int, int) -> (int)
-    Returns (base^(2^exponent)) (mod modulo)
-    
-    >>> helper_modulo(271, 2, 481)
-    16
-    
-    >>> helper_modulo(271, 6, 481)
-    419
-    
-    >>> helper_modulo(4, 3, 3)
-    1
-    """
-    if exponent == 0: #base case --> x^(2^0)=x for any x
-        return base % modulo
-    else:
-        return ((helper_modulo(base, exponent-1, modulo))**2) % modulo # (a^(2^x))^2 = (a^(2^(x+1))) (mod n)
-    
-
-
-def repeated_squares(base, power, modulo):
-    """ (int, int) -> (int)
-    Calculates base^(power) (mod modulo) using the method of repeated squares.
-    
-    >>> repeated_squares(271, 321, 481)
-    47
-    
-    >>> repeated_squares(50921, 30, 5)
-    1
-    """
-    power_bin = powers_of_two(power) #finds the power as a sum of powers of twos
-    
-    answer = 1 #Beginning of answer
-    
-    for elements in power_bin: #iterates through the factors that make up base^power
-        answer *= helper_modulo(base, int(elements), modulo)    
-    
-    return answer % modulo
-
-
-# In[17]:
-
-
-##### Implementation of Selfridge's Conjecture of Prime Numbers #####
-
-def fibonacci(k):
-    """ (int) -> (int)
-    Returns the kth Fibonacci number, F0=0, F1=1, Fn=Fn-1 +Fn-2 for n > 1
-    
-    >>> fibonacci(0)
-    0
-    
-    >>> fibonacci(1)
-    1
-    
-    >>> fibonacci(8)
-    21
-    """
-    if type(k) != int:
-        raise TypeError("This function requires and integer input.")
-    if k == 0: #F0=0
-        return 0
-    elif k == 1: #F1=1
-        return 1
-    else: #Fn=Fn-1 +Fn-2
-        return fibonacci(k-1) + fibonacci(k-2)
-
-
-def selfridge(N):
-    """ (int) -> (boolean)
-    Uses Selfridge's conjecutre to test N for primality. This is not a conclusive test since the conjecture
-    has not yet been proven.
-    If N is odd and N % 5 = +-2 the N is prime if:
-    2**(N-1)%N=1
-    and
-    F(N+1)%N=0
-    
-    >>> selfridge(17)
-    True
-    
-    >>> selfridge(13)
-    True
-    
-    >>> selfridge(2)
-    False
-    
-    >>> selfridge(0)
-    False
-    """
-    if type(N) != int:
-        raise TypeError("Only integers can be primes.")
-    
-    if N%2 == 0:
-        return False
-    if N%5 not in [2, 3]:
-        raise ValueError("Selfridge's conjecture does not apply to this number.")
-    
-    if repeated_squares(2, N-1, N) != 1:
-        raise ValueError("Selfridge's conjecture fails to apply to this number. Inconclusive test.")
-    
-    if fibonacci(N+1)%N != 0:
-        raise ValueError("Selfridge's conjecture fails to apply to this number. Inconclusive test.")
-    
-    return True
-
-
-# <h3>Vectors</h3>
-
-# In[1]:
-
-
-class Vector:
-    def __init__(self, data=None):
-        if not data:
-            self.data = []
-        else:
-            for entry in data:
-                if type(entry) not in [float, int]:
-                    raise TypeError("Entries of a vector must be numeric.")
-            self.data = data
-    
-    #returns the dimensionality of the vector
-    def __len__(self):
-        return len(self.data)
-    
-    #lets us index through a vector
-    def __getitem__(self, key):
-        return self.data[key]
-    
-    #lets us reset one of the vectors coordinates
-    def __setitem__(self, key, value):
-        self.data[key] = value
-    
-    #checks if value is one of the components of self
-    def __contains__(self, value):
-        return value in self.data
-    
-    #these next two methods allow us to iterate through the components of self
-    def __iter__(self):
-        self.n = 0
-        return self
-    
-    def __next__(self):
-        if self.n < len(self):
-            result = self[self.n]
-            self.n += 1
-            return result
-        else:
-            raise StopIteration
-            
-    #meaningful string representation of self
-    def __str__(self):
-        return "Vector: " + str(self.data)
-    
-    #comparison operators, vectors are equal if they are equal component-wise
-    def __eq__(self, v2):
-        return self.data == v2.data
-    def __ne__(self, v2):
-        return self.data != v2.data
-        
-    ##### The next methods will define arithmetic with vectors #####
-    
-    def __mul__(self, a):
-        if type(a) not in [float, int]:
-            raise TypeError("A vector can only by multiplied by a scalar.")
-            
-        new_data = []
-        for i in self:
-            new_data.append(a*i)
-        return Vector(new_data)
-    
-    def __rmul__(self, a):
-        if type(a) not in [float, int]:
-            raise TypeError("A vector can only by multiplied by a scalar.")
-            
-        new_data = []
-        for i in self:
-            new_data.append(a*i)
-        return Vector(new_data)
-    
-    def __truediv__(self, a):
-        if type(a) not in [float, int]:
-            raise TypeError("A vector can only by divided by a scalar.")
-            
-        new_data = []
-        for i in self:
-            new_data.append(i/a)
-        return Vector(new_data)
-    
-    #add component-wise
-    def __add__(self, v2):
-        if type(v2) != Vector:
-            raise TypeError("Vectors can only added to other vectors.")
-        if len(self) != len(v2):
-            raise ValueError("We can only add vectors with the same lengths.")
-            
-        new_data = []
-        for i in range(len(self)):
-            new_data.append(self[i] + v2[i])
-        return Vector(new_data)
-    
-    #subtract component-wise
-    def __sub__(self, v2):
-        return self + (-1*v2)
-        
-    #magnitude of the vector
-    def magnitude(self):
-        mag = 0
-        for i in self:
-            mag += i**2
-        return math.sqrt(mag)
-    
-    #dot product of two vectors
-    def dot(self, v2):
-        if len(self) != len(v2):
-            raise ValueError("Both vectors must have the same length.")
-        count = 0
-        for i in range(len(self)):
-            count += self[i]*v2[i]
-        return count
-    
-    #finds the angle between two vectors
-    def angle(self, v2):
-        s_mag = self.magnitude()
-        v2_mag = v2.magnitude()
-        dot_prod = self.dot(v2)
-        return math.acos(dot_prod/v2_mag/s_mag)
-    
-    #scalar projection of self onto v2
-    def scalar_proj(self, v2):
-        return self.dot(v2)/v2.magnitude()
-    
-    #vector projection of self onto v2
-    def vector_proj(self, v2):
-        scalar_p = self.scalar_proj(v2)
-        data = copy.copy(v2.data) #vector data is mutable
-        new_vector = Vector(data)
-        for i in range(len(v2)):
-            new_vector[i] = new_vector[i]*scalar_p/v2.magnitude()
-        return new_vector
-    
-    #cross product of vectors in 3D
-    def cross_prod(self, v2):
-        if len(self) != len(v2):
-            raise ValueError("Both vectors must have the same length.")
-        elif len(self) == 3:
-            x = self[2]*v2[3]-self[3]*v2[2]
-            y = self[3]*v2[1]-self[1]*v2[3]
-            z = self[1]*v2[2]-self[2]*v2[1]
-            return Vector([x, y, z])
-        raise ValueError("Vectors must be of length 3.")
-        
-    #print 3D vector's spherical coordinates
-    def spherical(self):
-        if len(self) != 3:
-            raise ValueError("Spherical coordinates are only defined in 3 dimensions.")
-        r = self.magnitude() 
-        theta = math.atan(self[1]/self[0])
-        phi = math.acos(self[2]/r)
-        print(r, "r +", theta, "theta +", phi, "phi")
-    
-    #print #D vector's cylindrical coordinate
-    def cylindrical(self):
-        if len(self) != 3:
-            raise ValueError("Cylindrical coordinates are only defined in 3 dimensions.")
-        r = math.sqrt(self[0]**2 + self[1]**2)
-        theta = math.atan(self[1]/self[0])
-        z = self[2]
-        print(r, 'r +', theta, 'theta +', z, "z")
-    
-    #unit vector in the direction of the instance vector
-    def unit(self):
-        return self/self.magnitude()
-    
-    def parallel(self, v2):
-        return self.dot(v2) == self.magnitude()*v2.magnitude()
-    
-    def antiparallel(self, v2):
-        return self.dot(v2) == -self.magnitude()*v2.magnitude()
-    
-    #two vectors are opposite if they have the same magnitude and opposite direction
-    def opposite(self, v2):
-        return self.antiparallel(v2) and (self.magnitude() == v2.magnitude())
-    
-    #two vectors are perpendicular if their dot product is zero
-    def perpendicualr(self, v2):
-        return self.dot(v2) == 0
-
-
-# <h3>Calculus</h3>
-
-# In[2]:
-
-
-def derivative(func, x, error=10**-5):
-    """ (function, num, num) -> (num)
-    Returns an estimate for the derivative of func at x with an error on the order of error.
-    Assumes that func is continuously differentiable near x"""
-    h = math.sqrt(error) #using this formula error is on the order of h**2
-    deriv = func(x+h)-func(x-h)
-    return deriv/(2*h)
-
-
-# In[3]:
-
-
-def riemann_integral(func, a, b, bins=100, side='mid'):
-    """ (function, num, num, int, str) -> (num)
-    Returns an estimate for the integral of func from a to b, a<=b. The estimate is determined using
-    Riemann sums. The side parameter determines the whether the bins should be right-sided, midpoint, 
-    or left-sided; default is midpoint sum."""
-    if b < a:
-        return ValueError('The left limit must be less than or equal to the right limit.')
-    if a == b:
-        return 0
-    
-    step = (b-a)/bins #width of each bin
-    
-    total = 0 #value of the estimate
-    current = a #start at left endpoint
-    if side == 'right':
-        while (current+step) <= b:
-            total += step*func(current+step)
-            current += step
-    elif side == 'mid':
-        while current < b:
-            total += step*func(current+step/2)
-            current += step
-    elif side == 'left':
-        while current <= b:
-            total += step*func(current)
-            current += step
-    else:
-        return ValueError("side parameter must be right, mid, or left.")
-    
-    return total
-
-
-def trapezoid_integral(func, a, b, steps=100):
-    """ (function, num, num, int) -> (num)
-    Returns an estimate for the integral of func from a to b, a<=b. The estimate is determined using
-    the trapezoid rule. The formula for one step is given by
-        0.5*(xn+1 - xn)*(func(xn+1) + func(xn))
-    """
-    if b < a:
-        return ValueError('The left limit must be less than or equal to the right limit.')
-    if a == b:
-        return 0
-    
-    stepsize = (b-a)/steps #width of each step
-    
-    total = 0 #value of the estimate
-    current = a + stepsize #start at left endpoint
-    while current <= b:
-        total += 0.5*stepsize*(func(current) + func(current-stepsize))
-        current += stepsize
-    
-    return total
-
-
-# In[4]:
-
-
-def euler_odes(func, times, y0):
-    """ (func, list, num) -> (list)
-    Estimates the numerical solution to the ODE y'(t)=func(y, t) with initial value y0 at times[0].
-    times is the list of times where we want to approximate our solution. Returns a list of our approximations
-    of y at each of the points in times."""
-    y = [0]*len(times)
-    y[0] = y0
-    for i in range(len(times)-1):
-        y[i+1] = y[i] + func(y[i], times[i])*(times[i+1]-times[i])
-    return y
-
-
-# <h3>Statistics</h3>
-
-# In[8]:
-
-
-def mean(data):
-    """ (list) -> (float)
-    Returns the mean of the values in data.
-    
-    >>> ex = [0.1, 0.4, 0.6, 0.8, 1.1, 1.2, 1.3, 1.5, 1.7, 1.9, 1.9, 2.0, 2.2, 2.6, 3.2]
-    >>> mean(ex)
-    1.5
-    """
-    return sum(data)/len(data)
-
-
-def standard_dev(data, ave=None):
-    """ (list, float/None) -> float
-    Returns the standard deviation of the values in data.
-    
-    >>> ex = [0.1, 0.4, 0.6, 0.8, 1.1, 1.2, 1.3, 1.5, 1.7, 1.9, 1.9, 2.0, 2.2, 2.6, 3.2]
-    >>> standard_dev(ex)
-    0.8434622525214579
-    """
-    if ave is None: #an average is not given and we must calculate it
-        ave = mean(data) #finds the average of data
-    #otherwise an average is already given as input
-    
-    #The following code computes the standard deviation of data
-    std = 0
-    for entry in data:
-        std += (entry - ave)**2
-        
-    return math.sqrt(std/(len(data)-1))
-
-
-def variance(data):
-    """ (list) -> (float)
-    """
-    return standard_dev(data)**2
-
-def standard_error(data, std=None):
-    """ (list, float/None) -> (float)
-    Returns the standard error of the values in data.
-    
-    >>> ex = [0.1, 0.4, 0.6, 0.8, 1.1, 1.2, 1.3, 1.5, 1.7, 1.9, 1.9, 2.0, 2.2, 2.6, 3.2]
-    >>> standard_error(ex)
-    0.21778101714468007
-    """
-    if std is None:
-        std = standard_dev(data)
-    return std/math.sqrt(len(data))
-
-
-def weighted_mean(data, errors):
-    """ (list, list) -> (float, float)
-    Returns the weighted mean of the entries of data, their weights are given by the inverse
-    square of their uncertainties.
-    Also returns the weighted mean's error.
-    """
-    weights = []
-    for entry in errors: #the weight of a data point is the inverse square of its error
-        weights.append(1/entry**2)
-    
-    tot = 0
-    for i in range(len(data)):
-        tot += data[i]*weights[i]
-    
-    #weighted mean
-    final_mean = tot/sum(weights)
-    
-    #error in the weighted mean
-    weighted_error = 1/math.sqrt(sum(weights))
-    
-    return final_mean, weighted_error
-
-
-def percent_error(actual, expected):
-    """ (float, float) -> (float)
-    Returns the percent error of an experimentally determined value.
-    """
-    return abs((actual - expected)/expected)*100
-
-
-# In[9]:
-
-
-"""
-The following code provides function suseful in determinign linear fits to data as well as some ways of
-testing the quality of the fit. 
-"""
-
-
-def linear_fit(x, y):
-    """ (list list) -> (float, float, float, float)
-    Returns the (slope, intercept, slope uncertainty, intercept uncertainty) of the linear fit of data y against data x.
-    x and y have the same length.
-    """
-    N = len(x) #len(x)=len(y)
-    
-    #The following code finds the necessary sums of data needed to find a linear fit
-    sum_x = sum(x)
-    sum_y = sum(y)
-    
-    sum_x_squared = 0
-    i = 0
-    while i < N:
-        sum_x_squared += x[i]**2
-        i += 1
-    
-    sum_xy = 0
-    i = 0
-    while i < N:
-        sum_xy += x[i]*y[i]
-        i += 1
-    
-    #This is the denominator of many equations that are used in determining a linear fit.
-    denominator = (sum_x_squared*N) - (sum_x)**2
-    
-    #slope
-    m = ((N*sum_xy) - (sum_x*sum_y))/denominator
-    
-    #intercept
-    c = ((sum_x_squared*sum_y) - (sum_x*sum_xy))/denominator
-    
-    #common uncertainty
-    summation = 0
-    i = 0
-    while i < N:
-        summation += (y[i] - m*x[i] - c)**2
-        i += 1
-    commonU = math.sqrt(summation/(N-2))
-    
-    #slope uncertainty
-    mU = commonU*math.sqrt(N/denominator)
-    
-    #intercept uncertainty
-    cU = commonU*math.sqrt(sum_x_squared/denominator)
-    
-    return m, c, mU, cU
-
-
-
-def weighted_linear_fit(x, y, error):
-    """ (list, list, list) -> (float, float, float, float)
-    Determines the weighted least squares fit of a data set y against x with non-
-    uniform error bars given by error.
-    """
-    weight = []
-    for i in error:
-        weight.append(1/i**2) #the weight of a given point is the inverse square of its error
-    
-    w = sum(weight) #sum of all the weights
-    
-    w_x = 0 #sum of all weights times their respective x point
-    for i in range(len(weight)):
-        w_x += weight[i]*x[i]
-    
-    w_y = 0 #sum of all weights times their respective y points
-    for i in range(len(weight)):
-        w_y += weight[i]*y[i]
-    
-    w_x_y = 0 #sum of all weights times their respective x and y points
-    for i in range(len(weight)):
-        w_x_y += weight[i]*x[i]*y[i]
-    
-    w_x_square = 0 #sum of all weights times their respective x points squared
-    for i in range(len(weight)):
-        w_x_square += weight[i]*(x[i]**2)
-    
-    delta = w*w_x_square-(w_x**2) #term found in the denominator of many equations used in finding the fit
-    
-    m = (w*w_x_y - w_x*w_y)/delta
-    
-    c = (w_x_square*w_y - w_x*w_x_y)/delta
-    
-    mU = math.sqrt(w_x_square/delta)
-    
-    cU = math.sqrt(w/delta)
-    
-    return m, c, mU, cU
-
-
-def residuals(x, y, fit):
-    """ (list, list, function, float) -> (list)
-    Finds the residuals of a best fit single-variable function with uniform error and
-    returns their y-coordiantes.
-    """
-    yRes = []
-    for i in range(len(x)):
-        yRes.append(y[i] - fit(x[i])) #actual - expected
-    
-    return yRes
-
-
-def normalised_residuals(x, y, fit, error):
-    """ (list, list, function, list) -> (list)
-    Finds the residuals of a best fit single-variable function with non-uniform error and
-    returns their y-coordiantes. The error array is the standard error of the predicted values
-    at each point in x.
-    """
-    yRes = []
-    for i in range(len(x)):
-        yRes.append((y[i] - fit(x[i]))/error[i])
-    
-    return yRes
-
-
-def chi_square(x, y, fit, error):
-    """ (list, list, list) -> (float)
-    Returns the Chi-square value of a function, given by fit, fitted against x & y values with associated
-    (not necessarily uniform) uncertainties given by error.
-    """
-    chi = 0
-    for i in range(len(x)):
-        chi += ((y[i] - fit(x[i]))/error[i])**2
-    
-    return chi
-
-
-def chi_square_poisson(observed, expected):
-    """ (list, list) -> (float)
-    Returns the Chi-square value of a discrete function given by a Poisson distribution. Observed is a list of the
-    observed number of counts for given intervals. expected is a list of the expected number of counts for given intervals.
-    
-    >>> chi_square_poisson([16, 18, 16, 14, 12, 12], [16, 16, 16, 16, 16, 8])
-    3.5
-    """
-    chi = 0
-    for i in range(len(observed)):
-        chi += (observed[i] - expected[i])**2/expected[i]
-    
-    return chi
-
-
-def durbin_watson(res):
-    """ (list) -> (float)
-    Returns the Durbin-Watson statistic which uses the residuals to test the fit of a function.
-    D=0 : systematically correlated residuals
-    D=2 : randomly distributed residuals that follow a Gaussian distribution
-    D=4 : systematically anticorrelated residuals
-    """
-    numerator = 0
-    for i in range(1, len(res)):
-        numerator += (res[i] - res[i-1])**2
-    
-    denominator = 0
-    for i in range(len(res)):
-        denominator += res[i]**2
-    
-    return numerator/denominator
-
-
-def rms(x, y, fit):
-    """ (list, list, function) -> (float)
-    Finds the root mean square of the fit to x and y data.
-    """
-    res = residuals(x, y, fit)
-    res_sqr = []
-    
-    for r in res:
-        res_sqr.append(r**2)
-        
-    return math.sqrt(mean(res_sqr))
-    
-
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import math\n",
+    "import copy\n",
+    "from inspect import isfunction"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h3>Primes</h3>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def primality_brute(N):\n",
+    "    \"\"\"(int) -> (boolean)\n",
+    "    Does a brute force test of primailty by checking the divisibility of N by all integers less than sqrt(N).\n",
+    "    \"\"\"\n",
+    "    if N == 1: #1 is not a prime by definition\n",
+    "        return False\n",
+    "    \n",
+    "    if type(N) != int: #nonintegers cannot be prime\n",
+    "        raise TypeError(\"N must be an integer.\")\n",
+    "    \n",
+    "    stop = math.sqrt(N) #stop point\n",
+    "    i = 2\n",
+    "    while i <= stop:\n",
+    "        if N % i == 0: #if i divides N\n",
+    "            return False\n",
+    "        i += 1\n",
+    "    return True\n",
+    "\n",
+    "\n",
+    "\n",
+    "def primes_less_than(N):\n",
+    "    \"\"\" (int) -> (list)\n",
+    "    Returns a list of all prime numbers <N\n",
+    "    \n",
+    "    >>> primes_less_than(4)\n",
+    "    [2, 3]\n",
+    "    \n",
+    "    >>> primes_less_than(10)\n",
+    "    [2, 3, 5, 7]\n",
+    "    \n",
+    "    >>> primes_less_than(1000)\n",
+    "    [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, \n",
+    "    101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, \n",
+    "    197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, \n",
+    "    311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, \n",
+    "    431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541, 547, \n",
+    "    557, 563, 569, 571, 577, 587, 593, 599, 601, 607, 613, 617, 619, 631, 641, 643, 647, 653, 659, \n",
+    "    661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739, 743, 751, 757, 761, 769, 773, 787, 797, \n",
+    "    809, 811, 821, 823, 827, 829, 839, 853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919, 929, \n",
+    "    937, 941, 947, 953, 967, 971, 977, 983, 991, 997]\n",
+    "\n",
+    "    \"\"\"\n",
+    "    primes = list(range(2, N))\n",
+    "    \n",
+    "    for x in primes: #iterates through primes\n",
+    "        multiples = 2\n",
+    "        while multiples*x < N: #removes all multiples of x from list of primes\n",
+    "            if multiples*x in primes:\n",
+    "                primes.remove(multiples*x)\n",
+    "            multiples += 1\n",
+    "    \n",
+    "    return primes"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "### Code for implementing the method of repeated squares in determining a^m % n\n",
+    "\n",
+    "def powers_of_two(num):\n",
+    "    \"\"\" (int) -> (list)\n",
+    "    Returns num as a sum of powers of two.\n",
+    "    \n",
+    "    >>> powers_of_two(6)\n",
+    "    [1, 2]\n",
+    "    \n",
+    "    >>> powers_of_two(57)\n",
+    "    [0, 3, 4, 5]\n",
+    "    \"\"\"\n",
+    "    num_bin = bin(num)[2:] #converts num to a binary string and remvoes '0b' at the front\n",
+    "    \n",
+    "    exponents = []\n",
+    "    for pos in range(len(num_bin)): #iterates backwards through the string\n",
+    "        if num_bin[len(num_bin) - 1 - pos] != '0':\n",
+    "            exponents.append(pos)\n",
+    "    \n",
+    "    return exponents\n",
+    "\n",
+    "\n",
+    "def helper_modulo(base, exponent, modulo):\n",
+    "    \"\"\" (int, int, int) -> (int)\n",
+    "    Returns (base^(2^exponent)) (mod modulo)\n",
+    "    \n",
+    "    >>> helper_modulo(271, 2, 481)\n",
+    "    16\n",
+    "    \n",
+    "    >>> helper_modulo(271, 6, 481)\n",
+    "    419\n",
+    "    \n",
+    "    >>> helper_modulo(4, 3, 3)\n",
+    "    1\n",
+    "    \"\"\"\n",
+    "    if exponent == 0: #base case --> x^(2^0)=x for any x\n",
+    "        return base % modulo\n",
+    "    else:\n",
+    "        return ((helper_modulo(base, exponent-1, modulo))**2) % modulo # (a^(2^x))^2 = (a^(2^(x+1))) (mod n)\n",
+    "    \n",
+    "\n",
+    "\n",
+    "def repeated_squares(base, power, modulo):\n",
+    "    \"\"\" (int, int) -> (int)\n",
+    "    Calculates base^(power) (mod modulo) using the method of repeated squares.\n",
+    "    \n",
+    "    >>> repeated_squares(271, 321, 481)\n",
+    "    47\n",
+    "    \n",
+    "    >>> repeated_squares(50921, 30, 5)\n",
+    "    1\n",
+    "    \"\"\"\n",
+    "    power_bin = powers_of_two(power) #finds the power as a sum of powers of twos\n",
+    "    \n",
+    "    answer = 1 #Beginning of answer\n",
+    "    \n",
+    "    for elements in power_bin: #iterates through the factors that make up base^power\n",
+    "        answer *= helper_modulo(base, int(elements), modulo)    \n",
+    "    \n",
+    "    return answer % modulo\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "##### Implementation of Selfridge's Conjecture of Prime Numbers #####\n",
+    "\n",
+    "def fibonacci(k):\n",
+    "    \"\"\" (int) -> (int)\n",
+    "    Returns the kth Fibonacci number, F0=0, F1=1, Fn=Fn-1 +Fn-2 for n > 1\n",
+    "    \n",
+    "    >>> fibonacci(0)\n",
+    "    0\n",
+    "    \n",
+    "    >>> fibonacci(1)\n",
+    "    1\n",
+    "    \n",
+    "    >>> fibonacci(8)\n",
+    "    21\n",
+    "    \"\"\"\n",
+    "    if type(k) != int:\n",
+    "        raise TypeError(\"This function requires and integer input.\")\n",
+    "    if k == 0: #F0=0\n",
+    "        return 0\n",
+    "    elif k == 1: #F1=1\n",
+    "        return 1\n",
+    "    else: #Fn=Fn-1 +Fn-2\n",
+    "        return fibonacci(k-1) + fibonacci(k-2)\n",
+    "\n",
+    "\n",
+    "def selfridge(N):\n",
+    "    \"\"\" (int) -> (boolean)\n",
+    "    Uses Selfridge's conjecutre to test N for primality. This is not a conclusive test since the conjecture\n",
+    "    has not yet been proven.\n",
+    "    If N is odd and N % 5 = +-2 the N is prime if:\n",
+    "    2**(N-1)%N=1\n",
+    "    and\n",
+    "    F(N+1)%N=0\n",
+    "    \n",
+    "    >>> selfridge(17)\n",
+    "    True\n",
+    "    \n",
+    "    >>> selfridge(13)\n",
+    "    True\n",
+    "    \n",
+    "    >>> selfridge(2)\n",
+    "    False\n",
+    "    \n",
+    "    >>> selfridge(0)\n",
+    "    False\n",
+    "    \"\"\"\n",
+    "    if type(N) != int:\n",
+    "        raise TypeError(\"Only integers can be primes.\")\n",
+    "    \n",
+    "    if N%2 == 0:\n",
+    "        return False\n",
+    "    if N%5 not in [2, 3]:\n",
+    "        raise ValueError(\"Selfridge's conjecture does not apply to this number.\")\n",
+    "    \n",
+    "    if repeated_squares(2, N-1, N) != 1:\n",
+    "        raise ValueError(\"Selfridge's conjecture fails to apply to this number. Inconclusive test.\")\n",
+    "    \n",
+    "    if fibonacci(N+1)%N != 0:\n",
+    "        raise ValueError(\"Selfridge's conjecture fails to apply to this number. Inconclusive test.\")\n",
+    "    \n",
+    "    return True\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h3>Vectors</h3>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class Vector:\n",
+    "    def __init__(self, data=None):\n",
+    "        if data is None:\n",
+    "            self.data = []\n",
+    "        elif not (type(data) is list):\n",
+    "            raise TypeError(\"A vector must be initilaized with a numeric list.\")\n",
+    "        else:\n",
+    "            for entry in data:\n",
+    "                if type(entry) not in [float, int]:\n",
+    "                    raise TypeError(\"Entries of a vector must be numeric.\")\n",
+    "            self.data = data\n",
+    "    \n",
+    "    #returns the dimensionality of the vector\n",
+    "    def __len__(self):\n",
+    "        return len(self.data)\n",
+    "    \n",
+    "    #lets us index through a vector\n",
+    "    def __getitem__(self, key):\n",
+    "        return self.data[key]\n",
+    "    \n",
+    "    #lets us reset one of the vectors coordinates\n",
+    "    def __setitem__(self, key, value):\n",
+    "        self.data[key] = value\n",
+    "    \n",
+    "    #checks if value is one of the components of self\n",
+    "    def __contains__(self, value):\n",
+    "        return value in self.data\n",
+    "    \n",
+    "    #these next two methods allow us to iterate through the components of self\n",
+    "    def __iter__(self):\n",
+    "        self.n = 0\n",
+    "        return self\n",
+    "    \n",
+    "    def __next__(self):\n",
+    "        if self.n < len(self):\n",
+    "            result = self[self.n]\n",
+    "            self.n += 1\n",
+    "            return result\n",
+    "        else:\n",
+    "            raise StopIteration\n",
+    "            \n",
+    "    #meaningful string representation of self\n",
+    "    def __str__(self):\n",
+    "        return \"Vector: \" + str(self.data)\n",
+    "    \n",
+    "    #comparison operators, vectors are equal if they are equal component-wise\n",
+    "    def __eq__(self, v2):\n",
+    "        return self.data == v2.data\n",
+    "    def __ne__(self, v2):\n",
+    "        return self.data != v2.data\n",
+    "        \n",
+    "    ##### The next methods will define arithmetic with vectors #####\n",
+    "    \n",
+    "    def __mul__(self, a):\n",
+    "        if type(a) not in [float, int]:\n",
+    "            raise TypeError(\"A vector can only by multiplied by a scalar.\")\n",
+    "            \n",
+    "        new_data = []\n",
+    "        for i in self:\n",
+    "            new_data.append(a*i)\n",
+    "        return Vector(new_data)\n",
+    "    \n",
+    "    def __rmul__(self, a):\n",
+    "        if type(a) not in [float, int]:\n",
+    "            raise TypeError(\"A vector can only by multiplied by a scalar.\")\n",
+    "            \n",
+    "        new_data = []\n",
+    "        for i in self:\n",
+    "            new_data.append(a*i)\n",
+    "        return Vector(new_data)\n",
+    "    \n",
+    "    def __truediv__(self, a):\n",
+    "        if type(a) not in [float, int]:\n",
+    "            raise TypeError(\"A vector can only by divided by a scalar.\")\n",
+    "            \n",
+    "        new_data = []\n",
+    "        for i in self:\n",
+    "            new_data.append(i/a)\n",
+    "        return Vector(new_data)\n",
+    "    \n",
+    "    #add component-wise\n",
+    "    def __add__(self, v2):\n",
+    "        if type(v2) != Vector:\n",
+    "            raise TypeError(\"Vectors can only added to other vectors.\")\n",
+    "        if len(self) != len(v2):\n",
+    "            raise ValueError(\"We can only add vectors with the same lengths.\")\n",
+    "            \n",
+    "        new_data = []\n",
+    "        for i in range(len(self)):\n",
+    "            new_data.append(self[i] + v2[i])\n",
+    "        return Vector(new_data)\n",
+    "    \n",
+    "    #subtract component-wise\n",
+    "    def __sub__(self, v2):\n",
+    "        return self + (-1*v2)\n",
+    "        \n",
+    "    #magnitude of the vector\n",
+    "    def magnitude(self):\n",
+    "        mag = 0\n",
+    "        for i in self:\n",
+    "            mag += i**2\n",
+    "        return math.sqrt(mag)\n",
+    "    \n",
+    "    #dot product of two vectors\n",
+    "    def dot(self, v2):\n",
+    "        if len(self) != len(v2):\n",
+    "            raise ValueError(\"Both vectors must have the same length.\")\n",
+    "        count = 0\n",
+    "        for i in range(len(self)):\n",
+    "            count += self[i]*v2[i]\n",
+    "        return count\n",
+    "    \n",
+    "    #finds the angle between two vectors\n",
+    "    def angle(self, v2):\n",
+    "        s_mag = self.magnitude()\n",
+    "        v2_mag = v2.magnitude()\n",
+    "        dot_prod = self.dot(v2)\n",
+    "        return math.acos(dot_prod/v2_mag/s_mag)\n",
+    "    \n",
+    "    #scalar projection of self onto v2\n",
+    "    def scalar_proj(self, v2):\n",
+    "        return self.dot(v2)/v2.magnitude()\n",
+    "    \n",
+    "    #vector projection of self onto v2\n",
+    "    def vector_proj(self, v2):\n",
+    "        scalar_p = self.scalar_proj(v2)\n",
+    "        data = copy.copy(v2.data) #vector data is mutable\n",
+    "        new_vector = Vector(data)\n",
+    "        for i in range(len(v2)):\n",
+    "            new_vector[i] = new_vector[i]*scalar_p/v2.magnitude()\n",
+    "        return new_vector\n",
+    "    \n",
+    "    #cross product of vectors in 3D\n",
+    "    def cross_prod(self, v2):\n",
+    "        if len(self) != len(v2):\n",
+    "            raise ValueError(\"Both vectors must have the same length.\")\n",
+    "        elif len(self) == 3:\n",
+    "            x = self[2]*v2[3]-self[3]*v2[2]\n",
+    "            y = self[3]*v2[1]-self[1]*v2[3]\n",
+    "            z = self[1]*v2[2]-self[2]*v2[1]\n",
+    "            return Vector([x, y, z])\n",
+    "        raise ValueError(\"Vectors must be of length 3.\")\n",
+    "        \n",
+    "    #print 3D vector's spherical coordinates\n",
+    "    def spherical(self):\n",
+    "        if len(self) != 3:\n",
+    "            raise ValueError(\"Spherical coordinates are only defined in 3 dimensions.\")\n",
+    "        r = self.magnitude() \n",
+    "        theta = math.atan(self[1]/self[0])\n",
+    "        phi = math.acos(self[2]/r)\n",
+    "        print(r, \"r +\", theta, \"theta +\", phi, \"phi\")\n",
+    "    \n",
+    "    #print #D vector's cylindrical coordinate\n",
+    "    def cylindrical(self):\n",
+    "        if len(self) != 3:\n",
+    "            raise ValueError(\"Cylindrical coordinates are only defined in 3 dimensions.\")\n",
+    "        r = math.sqrt(self[0]**2 + self[1]**2)\n",
+    "        theta = math.atan(self[1]/self[0])\n",
+    "        z = self[2]\n",
+    "        print(r, 'r +', theta, 'theta +', z, \"z\")\n",
+    "    \n",
+    "    #unit vector in the direction of the instance vector\n",
+    "    def unit(self):\n",
+    "        return self/self.magnitude()\n",
+    "    \n",
+    "    def parallel(self, v2):\n",
+    "        return self.dot(v2) == self.magnitude()*v2.magnitude()\n",
+    "    \n",
+    "    def antiparallel(self, v2):\n",
+    "        return self.dot(v2) == -self.magnitude()*v2.magnitude()\n",
+    "    \n",
+    "    #two vectors are opposite if they have the same magnitude and opposite direction\n",
+    "    def opposite(self, v2):\n",
+    "        return self.antiparallel(v2) and (self.magnitude() == v2.magnitude())\n",
+    "    \n",
+    "    #two vectors are perpendicular if their dot product is zero\n",
+    "    def perpendicualr(self, v2):\n",
+    "        return self.dot(v2) == 0"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h3>Calculus</h3>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def derivative(func, x, error=10**-5):\n",
+    "    \"\"\" (function, num, num) -> (num)\n",
+    "    Returns an estimate for the derivative of func at x with an error on the order of error.\n",
+    "    Assumes that func is continuously differentiable near x\"\"\"\n",
+    "    h = math.sqrt(error) #using this formula error is on the order of h**2\n",
+    "    deriv = func(x+h)-func(x-h)\n",
+    "    return deriv/(2*h)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def riemann_integral(func, a, b, bins=100, side='mid'):\n",
+    "    \"\"\" (function, num, num, int, str) -> (num)\n",
+    "    Returns an estimate for the integral of func from a to b, a<=b. The estimate is determined using\n",
+    "    Riemann sums. The side parameter determines the whether the bins should be right-sided, midpoint, \n",
+    "    or left-sided; default is midpoint sum.\"\"\"\n",
+    "    if b < a:\n",
+    "        return ValueError('The left limit must be less than or equal to the right limit.')\n",
+    "    if a == b:\n",
+    "        return 0\n",
+    "    \n",
+    "    step = (b-a)/bins #width of each bin\n",
+    "    \n",
+    "    total = 0 #value of the estimate\n",
+    "    current = a #start at left endpoint\n",
+    "    if side == 'right':\n",
+    "        while (current+step) <= b:\n",
+    "            total += step*func(current+step)\n",
+    "            current += step\n",
+    "    elif side == 'mid':\n",
+    "        while current < b:\n",
+    "            total += step*func(current+step/2)\n",
+    "            current += step\n",
+    "    elif side == 'left':\n",
+    "        while current <= b:\n",
+    "            total += step*func(current)\n",
+    "            current += step\n",
+    "    else:\n",
+    "        return ValueError(\"side parameter must be right, mid, or left.\")\n",
+    "    \n",
+    "    return total\n",
+    "\n",
+    "\n",
+    "def trapezoid_integral(func, a, b, steps=100):\n",
+    "    \"\"\" (function, num, num, int) -> (num)\n",
+    "    Returns an estimate for the integral of func from a to b, a<=b. The estimate is determined using\n",
+    "    the trapezoid rule. The formula for one step is given by\n",
+    "        0.5*(xn+1 - xn)*(func(xn+1) + func(xn))\n",
+    "    \"\"\"\n",
+    "    if b < a:\n",
+    "        return ValueError('The left limit must be less than or equal to the right limit.')\n",
+    "    if a == b:\n",
+    "        return 0\n",
+    "    \n",
+    "    stepsize = (b-a)/steps #width of each step\n",
+    "    \n",
+    "    total = 0 #value of the estimate\n",
+    "    current = a + stepsize #start at left endpoint\n",
+    "    while current <= b:\n",
+    "        total += 0.5*stepsize*(func(current) + func(current-stepsize))\n",
+    "        current += stepsize\n",
+    "    \n",
+    "    return total"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def euler_odes(func, times, y0):\n",
+    "    \"\"\" (func, list, num) -> (list)\n",
+    "    Estimates the numerical solution to the ODE y'(t)=func(y, t) with initial value y0 at times[0].\n",
+    "    times is the list of times where we want to approximate our solution. Returns a list of our approximations\n",
+    "    of y at each of the points in times.\"\"\"\n",
+    "    y = [0]*len(times)\n",
+    "    y[0] = y0\n",
+    "    for i in range(len(times)-1):\n",
+    "        y[i+1] = y[i] + func(y[i], times[i])*(times[i+1]-times[i])\n",
+    "    return y"
+   ]
+  },
+  {
+   "source": [
+    "<h3>Vector Functions</h3>"
+   ],
+   "cell_type": "markdown",
+   "metadata": {}
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class VectorFunction:\n",
+    "    \"\"\"\n",
+    "    This is a class defining single-parameter vector functions.\n",
+    "    The scalar attribute defines the number by which we multiply the value of the vector function after it has been evaluated at a point; this is done to make the algebraic property of scalar multiplication possible i.e. a*(f,g,h)=(a*f,a*g,a*h)\n",
+    "    \"\"\"\n",
+    "    def __init__(self, data=None):\n",
+    "        if data is None:\n",
+    "            self.data = []\n",
+    "        elif not (type(data) is list):\n",
+    "            raise TypeError(\"A vector function must be initilaized with a list of single-variable functions.\")\n",
+    "        else:\n",
+    "            for entry in data:\n",
+    "                if not isfunction(entry):\n",
+    "                    raise TypeError(\"Entries of a vector function must be single-variable functions.\")\n",
+    "            self.data = data\n",
+    "\n",
+    "    #makes a vector function callable\n",
+    "    def __call__(self, t):\n",
+    "        new_data = []\n",
+    "        for func in self:\n",
+    "            new_data.append(func(t))\n",
+    "        return Vector(new_data)\n",
+    "\n",
+    "    #returns the dimensionality of the vector\n",
+    "    def __len__(self):\n",
+    "        return len(self.data)\n",
+    "    \n",
+    "    #lets us index through a vector\n",
+    "    def __getitem__(self, key):\n",
+    "        return self.data[key]\n",
+    "    \n",
+    "    #lets us reset one of the vectors coordinates\n",
+    "    def __setitem__(self, key, value):\n",
+    "        self.data[key] = value\n",
+    "    \n",
+    "    #checks if value is one of the components of self\n",
+    "    def __contains__(self, value):\n",
+    "        return value in self.data\n",
+    "    \n",
+    "    #these next two methods allow us to iterate through the components of self\n",
+    "    def __iter__(self):\n",
+    "        self.n = 0\n",
+    "        return self\n",
+    "    \n",
+    "    def __next__(self):\n",
+    "        if self.n < len(self):\n",
+    "            result = self[self.n]\n",
+    "            self.n += 1\n",
+    "            return result\n",
+    "        else:\n",
+    "            raise StopIteration\n",
+    "            \n",
+    "    #meaningful string representation of self\n",
+    "    def __str__(self):\n",
+    "        return \"Vector Function: \" + str(self.data)\n",
+    "    \n",
+    "    #comparison operators, vector functions are equal if they are equal component-wise\n",
+    "    def __eq__(self, v2):\n",
+    "        return self.data == v2.data\n",
+    "    def __ne__(self, v2):\n",
+    "        return self.data != v2.data\n",
+    "    \n",
+    "    ##### The next methods will define arithmetic with vectors #####\n",
+    "\n",
+    "    def __mul__(self, a):\n",
+    "        if type(a) not in [float, int]:\n",
+    "            raise TypeError(\"A vector function can only be multiplied by a scalar.\")\n",
+    "        \n",
+    "        new_data = []\n",
+    "        def make_new(i):\n",
+    "            def temp(x):\n",
+    "                return a*self[i](x)\n",
+    "            return temp\n",
+    "        for i in range(len(self)):\n",
+    "            new_data.append(make_new(i))\n",
+    "        return VectorFunction(new_data)\n",
+    "    \n",
+    "    def __rmul__(self, a):\n",
+    "        if type(a) not in [float, int]:\n",
+    "            raise TypeError(\"A vector function can only be multiplied by a scalar.\")\n",
+    "        \n",
+    "        new_data = []\n",
+    "        def make_new(i):\n",
+    "            def temp(x):\n",
+    "                return a*self[i](x)\n",
+    "            return temp\n",
+    "        for i in range(len(self)):\n",
+    "            new_data.append(make_new(i))\n",
+    "        return VectorFunction(new_data)\n",
+    "    \n",
+    "    def __truediv__(self, a):\n",
+    "        if type(a) not in [float, int]:\n",
+    "            raise TypeError(\"A vector function can only be divided by a scalar.\")\n",
+    "        \n",
+    "        new_data = []\n",
+    "        def make_new(i):\n",
+    "            def temp(x):\n",
+    "                return 1/a*self[i](x)\n",
+    "            return temp\n",
+    "        for i in range(len(self)):\n",
+    "            new_data.append(make_new(i))\n",
+    "        return VectorFunction(new_data)\n",
+    "    \n",
+    "    #add component-wise\n",
+    "    def __add__(self, v2):\n",
+    "        if len(self) != len(v2):\n",
+    "            raise ValueError(\"Can only add vector functions of the same length.\")\n",
+    "\n",
+    "        new_data = []\n",
+    "        def make_new(i):\n",
+    "            def temp(x):\n",
+    "                return self[i](x) + v2[i](x)\n",
+    "            return temp\n",
+    "        for i in range(len(self)):\n",
+    "            new_data.append(make_new(i))\n",
+    "        return VectorFunction(new_data)\n",
+    "\n",
+    "    #subtract component-wise\n",
+    "    def __sub__(self, v2):\n",
+    "        if len(self) != len(v2):\n",
+    "            raise ValueError(\"Can only subtract vector functions of the same length.\")\n",
+    "\n",
+    "        new_data = []\n",
+    "        def make_new(i):\n",
+    "            def temp(x):\n",
+    "                return self[i](x) - v2[i](x)\n",
+    "            return temp\n",
+    "        for i in range(len(self)):\n",
+    "            new_data.append(make_new(i))\n",
+    "        return VectorFunction(new_data)\n",
+    "    \n",
+    "    #returns function that finds the magnitude of the instance of the vector function\n",
+    "    def magnitude(self):\n",
+    "        def new(x):\n",
+    "            tot = 0\n",
+    "            for func in self:\n",
+    "                tot += func(x)**2\n",
+    "            return math.sqrt(tot)\n",
+    "        return new\n",
+    "    \n",
+    "    #finds the angle between the vec Vector and the vector function evaluated at x\n",
+    "    def angle(self, x, vec):\n",
+    "        return vec.angle(self(x))\n",
+    "\n",
+    "    #scalar projection of vector function at x onto Vector vec\n",
+    "    def scalar_proj(self, x, vec):\n",
+    "        return self(x).scalar_proj(vec)\n",
+    "    \n",
+    "    #vector projection of vector function at x onto Vector vec\n",
+    "    def vector_proj(self, x, v2):\n",
+    "        return self(x).vector_proj(vec)\n",
+    "    \n",
+    "    #unit vector in the direction of vector function at s\n",
+    "    def unit(self, x):\n",
+    "        return self(x).unit()\n",
+    "\n",
+    "    #is the function at x parallel to Vector vec\n",
+    "    def parallel(self, x, vec):\n",
+    "        return self(x).parallel(vec)\n",
+    "\n",
+    "    def antiparallel(self, x, vec):\n",
+    "        return self(x).antiparallel(vec)\n",
+    "    \n",
+    "    #is the vector function at x opposite to Vector vec\n",
+    "    def opposite(self, x, vec):\n",
+    "        return self(x).opposite(vec)\n",
+    "    \n",
+    "    def perpendicular(self, x, vec):\n",
+    "        return self(x).perpendicular(vec)\n",
+    "\n",
+    "    \n",
+    "    #finds the arc length of the vector function from start to stop using the trapezoidal integral approximaiton\n",
+    "    def arc_length(self, start, stop, steps=100):\n",
+    "        return trapezoid_integral(self.magnitude, start, stop, steps)\n",
+    "    \n",
+    "    #finds the derivative of the vector function at x\n",
+    "    def eval_derivative(self, x, error=10**-5):\n",
+    "        new_data = []\n",
+    "        for func in self:\n",
+    "            new_data.append(derivative(func, x, error))\n",
+    "        return Vector(new_data)\n",
+    "\n",
+    "    #finds the unit tangent vector at x\n",
+    "    def tangent(self, x, error=10**-5):\n",
+    "        deriv = self.eval_derivative(x)\n",
+    "        return deriv/deriv.magnitude()\n",
+    "    \n",
+    "    #finds the unit normal to the vector function at x\n",
+    "    def normal(self, x, error=10**-5):\n",
+    "        tang = self.tangent(x, error)\n",
+    "        return tang/tang.magnitude()\n",
+    "    \n",
+    "    #finds the binormal vector in 3D to the vector function at x\n",
+    "    def binormal(self, x, error=10**-5):\n",
+    "        norm = self.normal(x, error)\n",
+    "        tang = self.tangent(x, error)\n",
+    "        return norm.cross_prod(tang)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<h3>Statistics</h3>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def mean(data):\n",
+    "    \"\"\" (list) -> (float)\n",
+    "    Returns the mean of the values in data.\n",
+    "    \n",
+    "    >>> ex = [0.1, 0.4, 0.6, 0.8, 1.1, 1.2, 1.3, 1.5, 1.7, 1.9, 1.9, 2.0, 2.2, 2.6, 3.2]\n",
+    "    >>> mean(ex)\n",
+    "    1.5\n",
+    "    \"\"\"\n",
+    "    return sum(data)/len(data)\n",
+    "\n",
+    "\n",
+    "def standard_dev(data, ave=None):\n",
+    "    \"\"\" (list, float/None) -> float\n",
+    "    Returns the standard deviation of the values in data.\n",
+    "    \n",
+    "    >>> ex = [0.1, 0.4, 0.6, 0.8, 1.1, 1.2, 1.3, 1.5, 1.7, 1.9, 1.9, 2.0, 2.2, 2.6, 3.2]\n",
+    "    >>> standard_dev(ex)\n",
+    "    0.8434622525214579\n",
+    "    \"\"\"\n",
+    "    if ave is None: #an average is not given and we must calculate it\n",
+    "        ave = mean(data) #finds the average of data\n",
+    "    #otherwise an average is already given as input\n",
+    "    \n",
+    "    #The following code computes the standard deviation of data\n",
+    "    std = 0\n",
+    "    for entry in data:\n",
+    "        std += (entry - ave)**2\n",
+    "        \n",
+    "    return math.sqrt(std/(len(data)-1))\n",
+    "\n",
+    "\n",
+    "def variance(data):\n",
+    "    \"\"\" (list) -> (float)\n",
+    "    \"\"\"\n",
+    "    return standard_dev(data)**2\n",
+    "\n",
+    "def standard_error(data, std=None):\n",
+    "    \"\"\" (list, float/None) -> (float)\n",
+    "    Returns the standard error of the values in data.\n",
+    "    \n",
+    "    >>> ex = [0.1, 0.4, 0.6, 0.8, 1.1, 1.2, 1.3, 1.5, 1.7, 1.9, 1.9, 2.0, 2.2, 2.6, 3.2]\n",
+    "    >>> standard_error(ex)\n",
+    "    0.21778101714468007\n",
+    "    \"\"\"\n",
+    "    if std is None:\n",
+    "        std = standard_dev(data)\n",
+    "    return std/math.sqrt(len(data))\n",
+    "\n",
+    "\n",
+    "def weighted_mean(data, errors):\n",
+    "    \"\"\" (list, list) -> (float, float)\n",
+    "    Returns the weighted mean of the entries of data, their weights are given by the inverse\n",
+    "    square of their uncertainties.\n",
+    "    Also returns the weighted mean's error.\n",
+    "    \"\"\"\n",
+    "    weights = []\n",
+    "    for entry in errors: #the weight of a data point is the inverse square of its error\n",
+    "        weights.append(1/entry**2)\n",
+    "    \n",
+    "    tot = 0\n",
+    "    for i in range(len(data)):\n",
+    "        tot += data[i]*weights[i]\n",
+    "    \n",
+    "    #weighted mean\n",
+    "    final_mean = tot/sum(weights)\n",
+    "    \n",
+    "    #error in the weighted mean\n",
+    "    weighted_error = 1/math.sqrt(sum(weights))\n",
+    "    \n",
+    "    return final_mean, weighted_error\n",
+    "\n",
+    "\n",
+    "def percent_error(actual, expected):\n",
+    "    \"\"\" (float, float) -> (float)\n",
+    "    Returns the percent error of an experimentally determined value.\n",
+    "    \"\"\"\n",
+    "    return abs((actual - expected)/expected)*100"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "\"\"\"\n",
+    "The following code provides function suseful in determining linear fits to data as well as some ways of\n",
+    "testing the quality of the fit. \n",
+    "\"\"\"\n",
+    "\n",
+    "\n",
+    "def linear_fit(x, y):\n",
+    "    \"\"\" (list list) -> (float, float, float, float)\n",
+    "    Returns the (slope, intercept, slope uncertainty, intercept uncertainty) of the linear fit of data y against data x.\n",
+    "    x and y have the same length.\n",
+    "    \"\"\"\n",
+    "    N = len(x) #len(x)=len(y)\n",
+    "    \n",
+    "    #The following code finds the necessary sums of data needed to find a linear fit\n",
+    "    sum_x = sum(x)\n",
+    "    sum_y = sum(y)\n",
+    "    \n",
+    "    sum_x_squared = 0\n",
+    "    i = 0\n",
+    "    while i < N:\n",
+    "        sum_x_squared += x[i]**2\n",
+    "        i += 1\n",
+    "    \n",
+    "    sum_xy = 0\n",
+    "    i = 0\n",
+    "    while i < N:\n",
+    "        sum_xy += x[i]*y[i]\n",
+    "        i += 1\n",
+    "    \n",
+    "    #This is the denominator of many equations that are used in determining a linear fit.\n",
+    "    denominator = (sum_x_squared*N) - (sum_x)**2\n",
+    "    \n",
+    "    #slope\n",
+    "    m = ((N*sum_xy) - (sum_x*sum_y))/denominator\n",
+    "    \n",
+    "    #intercept\n",
+    "    c = ((sum_x_squared*sum_y) - (sum_x*sum_xy))/denominator\n",
+    "    \n",
+    "    #common uncertainty\n",
+    "    summation = 0\n",
+    "    i = 0\n",
+    "    while i < N:\n",
+    "        summation += (y[i] - m*x[i] - c)**2\n",
+    "        i += 1\n",
+    "    commonU = math.sqrt(summation/(N-2))\n",
+    "    \n",
+    "    #slope uncertainty\n",
+    "    mU = commonU*math.sqrt(N/denominator)\n",
+    "    \n",
+    "    #intercept uncertainty\n",
+    "    cU = commonU*math.sqrt(sum_x_squared/denominator)\n",
+    "    \n",
+    "    return m, c, mU, cU\n",
+    "\n",
+    "\n",
+    "\n",
+    "def weighted_linear_fit(x, y, error):\n",
+    "    \"\"\" (list, list, list) -> (float, float, float, float)\n",
+    "    Determines the weighted least squares fit of a data set y against x with non-\n",
+    "    uniform error bars given by error.\n",
+    "    \"\"\"\n",
+    "    weight = []\n",
+    "    for i in error:\n",
+    "        weight.append(1/i**2) #the weight of a given point is the inverse square of its error\n",
+    "    \n",
+    "    w = sum(weight) #sum of all the weights\n",
+    "    \n",
+    "    w_x = 0 #sum of all weights times their respective x point\n",
+    "    for i in range(len(weight)):\n",
+    "        w_x += weight[i]*x[i]\n",
+    "    \n",
+    "    w_y = 0 #sum of all weights times their respective y points\n",
+    "    for i in range(len(weight)):\n",
+    "        w_y += weight[i]*y[i]\n",
+    "    \n",
+    "    w_x_y = 0 #sum of all weights times their respective x and y points\n",
+    "    for i in range(len(weight)):\n",
+    "        w_x_y += weight[i]*x[i]*y[i]\n",
+    "    \n",
+    "    w_x_square = 0 #sum of all weights times their respective x points squared\n",
+    "    for i in range(len(weight)):\n",
+    "        w_x_square += weight[i]*(x[i]**2)\n",
+    "    \n",
+    "    delta = w*w_x_square-(w_x**2) #term found in the denominator of many equations used in finding the fit\n",
+    "    \n",
+    "    m = (w*w_x_y - w_x*w_y)/delta\n",
+    "    \n",
+    "    c = (w_x_square*w_y - w_x*w_x_y)/delta\n",
+    "    \n",
+    "    mU = math.sqrt(w_x_square/delta)\n",
+    "    \n",
+    "    cU = math.sqrt(w/delta)\n",
+    "    \n",
+    "    return m, c, mU, cU\n",
+    "\n",
+    "\n",
+    "def residuals(x, y, fit):\n",
+    "    \"\"\" (list, list, function, float) -> (list)\n",
+    "    Finds the residuals of a best fit single-variable function with uniform error and\n",
+    "    returns their y-coordiantes.\n",
+    "    \"\"\"\n",
+    "    yRes = []\n",
+    "    for i in range(len(x)):\n",
+    "        yRes.append(y[i] - fit(x[i])) #actual - expected\n",
+    "    \n",
+    "    return yRes\n",
+    "\n",
+    "\n",
+    "def normalised_residuals(x, y, fit, error):\n",
+    "    \"\"\" (list, list, function, list) -> (list)\n",
+    "    Finds the residuals of a best fit single-variable function with non-uniform error and\n",
+    "    returns their y-coordiantes. The error array is the standard error of the predicted values\n",
+    "    at each point in x.\n",
+    "    \"\"\"\n",
+    "    yRes = []\n",
+    "    for i in range(len(x)):\n",
+    "        yRes.append((y[i] - fit(x[i]))/error[i])\n",
+    "    \n",
+    "    return yRes\n",
+    "\n",
+    "\n",
+    "def chi_square(x, y, fit, error):\n",
+    "    \"\"\" (list, list, list) -> (float)\n",
+    "    Returns the Chi-square value of a function, given by fit, fitted against x & y values with associated\n",
+    "    (not necessarily uniform) uncertainties given by error.\n",
+    "    \"\"\"\n",
+    "    chi = 0\n",
+    "    for i in range(len(x)):\n",
+    "        chi += ((y[i] - fit(x[i]))/error[i])**2\n",
+    "    \n",
+    "    return chi\n",
+    "\n",
+    "\n",
+    "def chi_square_poisson(observed, expected):\n",
+    "    \"\"\" (list, list) -> (float)\n",
+    "    Returns the Chi-square value of a discrete function given by a Poisson distribution. Observed is a list of the\n",
+    "    observed number of counts for given intervals. expected is a list of the expected number of counts for given intervals.\n",
+    "    \n",
+    "    >>> chi_square_poisson([16, 18, 16, 14, 12, 12], [16, 16, 16, 16, 16, 8])\n",
+    "    3.5\n",
+    "    \"\"\"\n",
+    "    chi = 0\n",
+    "    for i in range(len(observed)):\n",
+    "        chi += (observed[i] - expected[i])**2/expected[i]\n",
+    "    \n",
+    "    return chi\n",
+    "\n",
+    "\n",
+    "def durbin_watson(res):\n",
+    "    \"\"\" (list) -> (float)\n",
+    "    Returns the Durbin-Watson statistic which uses the residuals to test the fit of a function.\n",
+    "    D=0 : systematically correlated residuals\n",
+    "    D=2 : randomly distributed residuals that follow a Gaussian distribution\n",
+    "    D=4 : systematically anticorrelated residuals\n",
+    "    \"\"\"\n",
+    "    numerator = 0\n",
+    "    for i in range(1, len(res)):\n",
+    "        numerator += (res[i] - res[i-1])**2\n",
+    "    \n",
+    "    denominator = 0\n",
+    "    for i in range(len(res)):\n",
+    "        denominator += res[i]**2\n",
+    "    \n",
+    "    return numerator/denominator\n",
+    "\n",
+    "\n",
+    "def rms(x, y, fit):\n",
+    "    \"\"\" (list, list, function) -> (float)\n",
+    "    Finds the root mean square of the fit to x and y data.\n",
+    "    \"\"\"\n",
+    "    res = residuals(x, y, fit)\n",
+    "    res_sqr = []\n",
+    "    \n",
+    "    for r in res:\n",
+    "        res_sqr.append(r**2)\n",
+    "        \n",
+    "    return math.sqrt(mean(res_sqr))\n",
+    "    "
+   ]
+  },
+  {
+   "source": [
+    "<h3>Misc.</h3>"
+   ],
+   "cell_type": "markdown",
+   "metadata": {}
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def factorial(n):\n",
+    "    \"\"\"(int) -> (int)\n",
+    "    Returns the factorial of integer n.\"\"\"\n",
+    "    if type(n) not int:\n",
+    "        raise TypeError(\"Input must be a positive integer.\")\n",
+    "    if n < 0:\n",
+    "        raise ValueError(\"Input must be a positive integer.\")\n",
+    "    if n == 0:\n",
+    "        return 1\n",
+    "\n",
+    "    tot = 1 #answer\n",
+    "    current = 1 #start at 1\n",
+    "    while current <= n:\n",
+    "        tot *= current\n",
+    "    return tot"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "name": "python385jvsc74a57bd0bd644ae36b363e1a7f94b574dd18bd2e40ee8b93902e856ce9f0f7a17fda2410",
+   "display_name": "Python 3.8.5 64-bit ('base': conda)"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.8.5"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}

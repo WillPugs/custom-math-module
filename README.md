@@ -4,6 +4,7 @@ The my_math module is a custom module with mathematical functions and classes de
 Contains functions pertaining to primes: primes less than N, primality tests, factorization.
 
 Contains a vector class to implement vector algebra and operations:
+
     angle(v2):
         Angle between two Vectors.
     antiparallel(v2):
@@ -35,7 +36,8 @@ Contains a vector class to implement vector algebra and operations:
     vector_proj(v2):
         Vector projection of the instance Vector onto the v2 Vector.
 
-Contains a matrix class to implement matrix algebra and operations: 
+Contains a matrix class to implement matrix algebra and operations:
+
     adjugate():
         Returns the adjugate of a square Matrix.
     count_cols():
@@ -84,6 +86,7 @@ Contains functions to perform numerical integration and derivation.
 Contains an implementation of euler's method of solving ODEs of the form x'(t)=f(t,x(t)),
 
 Contains a vector function class to implement vector function algebra and operations:
+    
     angle(x,vec):
         Finds the angle between the instance VectorFunction at x and the given Vector.
     antiparallel(x,vec):

@@ -83,7 +83,7 @@ Contains a matrix class to implement matrix algebra and operations:
 
 Contains functions to perform numerical integration and derivation.
 
-Contains an implementation of euler's method of solving ODEs of the form x'(t)=f(t,x(t)),
+Contains an implementation of euler's method of solving ODEs of the form x'(t)=f(t,x(t)).
 
 Contains a vector function class to implement vector function algebra and operations:
     

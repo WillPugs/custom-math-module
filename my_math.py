@@ -1074,6 +1074,28 @@ def derivative(func, x, error=10**-5):
     return (func(x+h)-func(x-h))/(2*h)
 
 
+# In[ ]:
+
+
+def list_derivative(x, data):
+    """ (list, list) -> (list)
+    Estimates the derivative from a list of discrete data points.
+    """
+    if len(data) in [1, 2]:
+        raise ValueError("Cannot estimate the derivative from a small dataset of length 1 or 2.")
+
+    deriv = []
+
+    deriv[0] = (data[1]-data[0])/(x[1]-x[0]) #endpoints
+
+    for i in range(1, len(data)-1):
+        deriv.append((data[i+1]-data[i-1])/(x[i+1]-x[i-1]))
+
+    deriv.append((data[-1]-data[-2])/(x[-1]-x[-2])) #endpoints
+
+    return deriv
+
+
 # In[9]:
 
 

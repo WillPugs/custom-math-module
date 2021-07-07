@@ -1086,7 +1086,7 @@ def list_derivative(x, data):
 
     deriv = []
 
-    deriv[0] = (data[1]-data[0])/(x[1]-x[0]) #endpoints
+    deriv.append((data[1]-data[0])/(x[1]-x[0])) #endpoints
 
     for i in range(1, len(data)-1):
         deriv.append((data[i+1]-data[i-1])/(x[i+1]-x[i-1]))

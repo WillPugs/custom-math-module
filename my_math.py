@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[5]:
 
 
 import math
@@ -11,7 +11,7 @@ from inspect import isfunction
 
 # <h3>Primes</h3>
 
-# In[2]:
+# In[6]:
 
 
 def primality_brute(N):
@@ -36,7 +36,7 @@ def primality_brute(N):
 
 def primes_less_than(N):
     """ (int) -> (list)
-    Returns a list of all prime numbers <N
+    Returns a list of all prime numbers strictly less than N.
     
     >>> primes_less_than(4)
     [2, 3]
@@ -56,7 +56,7 @@ def primes_less_than(N):
     937, 941, 947, 953, 967, 971, 977, 983, 991, 997]
 
     """
-    primes = list(range(2, N))
+    primes = [i for i in range(2, N)]
     
     for x in primes: #iterates through primes
         multiples = 2
@@ -68,14 +68,14 @@ def primes_less_than(N):
     return primes
 
 
-# In[3]:
+# In[7]:
 
 
 ### Code for implementing the method of repeated squares in determining a^m % n
 
 def powers_of_two(num):
     """ (int) -> (list)
-    Returns num as a sum of powers of two.
+    Returns a list containing the exponents to which we raise each consecutive term in our sum of powers of two representation of num.
     
     >>> powers_of_two(6)
     [1, 2]
@@ -133,7 +133,7 @@ def repeated_squares(base, power, modulo):
     return answer % modulo
 
 
-# In[4]:
+# In[8]:
 
 
 ##### Implementation of Selfridge's Conjecture of Prime Numbers #####
@@ -153,10 +153,9 @@ def fibonacci(k):
     """
     if type(k) != int: #input validation
         raise TypeError("This function requires and integer input.")
-    if k == 0: #F0=0
-        return 0
-    elif k == 1: #F1=1
-        return 1
+    
+    if k == 0 or k == 1: #F0=0 F1=1
+        return k
     else: #Fn=Fn-1 +Fn-2
         return fibonacci(k-1) + fibonacci(k-2)
 
@@ -199,16 +198,18 @@ def selfridge(N):
     return True
 
 
-# In[5]:
+# In[9]:
 
 
 def factor(N):
     """ (int) -> (list)
     Returns a list of the prime factors of N.
     """
+    factors = []
     if N < 0:
-        raise ValueError("Function factors positive integers.")
-    if not (type(N) is int):
+        factors.append(-1)
+
+    if type(N) is not int:
         raise TypeError("Function only factors integers.")
     
     if N==1 or primality_brute(N): #special cases
@@ -217,13 +218,12 @@ def factor(N):
     #first make a list of all possible prime factors of N
     possible_factors = primes_less_than(N)
 
-    factors = []
     current = N
     while current > 1:
         for entry in possible_factors:
             if current%entry == 0:
                 factors.append(entry)
-                current = int(current/entry) #divide current by its factor entry to get our next number to factor
+                current = current//entry #divide current by its factor entry to get our next number to factor
                 continue
             possible_factors.remove(entry) #if current is not divisible by an entry in possible_factors we can remove that entry completely
     return factors
@@ -231,7 +231,7 @@ def factor(N):
 
 # <h3>Vectors</h3>
 
-# In[6]:
+# In[31]:
 
 
 class Vector:
@@ -342,7 +342,6 @@ class Vector:
         """
         if len(self) == 0:
             return "<>"
-
         return "<" + str(self.data)[1:-1] + ">" 
     
     def __eq__(self, v2):
@@ -355,7 +354,7 @@ class Vector:
         """ (self, Vector) -> (boolean)
         Vectors are not equal if they are not equal component-wise.
         """
-        return self.data != v2.data
+        return not self==v2
         
     
     def __mul__(self, a):
@@ -463,12 +462,7 @@ class Vector:
         """ (self, Vector) -> (Vector)
         Vector projection of the self Vector onto the v2 Vector.
         """
-        scalar_p = self.scalar_proj(v2)
-        data = copy.copy(v2.data) #vector data is mutable
-        new_vector = Vector(data)
-        for i in range(len(v2)):
-            new_vector[i] = new_vector[i]*scalar_p/v2.magnitude()
-        return new_vector
+        return self.scalar_proj(v2)*v2.unit()
     
     
     def cross_prod(self, v2):
@@ -482,7 +476,7 @@ class Vector:
             y = self[3]*v2[1]-self[1]*v2[3]
             z = self[1]*v2[2]-self[2]*v2[1]
             return Vector([x, y, z])
-        raise ValueError("Vectors must be of length 3.")
+        raise ValueError("Vectors must both be of length 3.")
         
     
     def spherical(self):
@@ -554,12 +548,12 @@ class Vector:
         """ (self) -> (Matrix)
         Converts the self Vector to a 1xlen(self) Matrix.
         """
-        return Matrix([self.data])
+        return Matrix([(self.data)])
 
 
 # <h3>Matrices</h3> <!-- Matrix Link -->
 
-# In[8]:
+# In[60]:
 
 
 class Matrix:
@@ -656,12 +650,16 @@ class Matrix:
         """ (self) -> (int)
         Counts the number of rows in the Matrix self.
         """
+        if self.data == [[]]:
+            return 0
         return len(self.data)
     
     def count_cols(self):
         """ (self) -> (int)
         Counts the number of columns in the Matrix self.
         """
+        if self.data == [[]]:
+            return 0
         return len(self.data[0])
 
     def __iter__(self):
@@ -702,7 +700,7 @@ class Matrix:
         """ (self, Matrix) -> (boolean)
         Two Matrices are not equal if they are not equal component-wise.
         """
-        return self.data != M2.data
+        return not self == M2
     
     def __mul__(self, M2):
         """ (self, Matrix/Vector) -> (Matrix)
@@ -721,7 +719,7 @@ class Matrix:
         n = self.count_cols()
         p = M2.count_cols()
 
-        new_data = Matrix.zero(m, p)
+        new_data = Matrix.zero(m, p) #mxp matrix of zeroes
         for row_idx in range(m):
             for col_idx in range(p):
                 new_data[row_idx][col_idx] = sum([self[row_idx][i]*M2[i][col_idx] for i in range(n)])
@@ -754,7 +752,7 @@ class Matrix:
         new_matrix = Matrix.zero(num_rows, num_cols)
         for row_idx in range(num_rows):
             for col_idx in range(num_cols):
-                new_matrix[row_idx][col_idx] += self[row_idx][col_idx] + M2[row_idx][col_idx]
+                new_matrix[row_idx][col_idx] = self[row_idx][col_idx] + M2[row_idx][col_idx]
         return new_matrix
 
     def __sub__(self, M2):
@@ -772,8 +770,9 @@ class Matrix:
         new_matrix = Matrix.zero(num_rows, num_cols)
         for row_idx in range(num_rows):
             for col_idx in range(num_cols):
-                new_matrix[row_idx][col_idx] += self[row_idx][col_idx] - M2[row_idx][col_idx]
+                new_matrix[row_idx][col_idx] = self[row_idx][col_idx] - M2[row_idx][col_idx]
         return new_matrix
+    
     
     def __truediv__(self, M2):
         """ (self, Matrix) -> (Matrix)
@@ -883,6 +882,8 @@ class Matrix:
         Returns the inverse of the Matrix self if it is invertible.
         """
         detA = self.determinant()
+        if detA == 0:
+            raise ValueError("This Matrix is not invertible.")
         return (1/detA)*self.adjugate()
 
     
@@ -910,12 +911,14 @@ class Matrix:
         elif type(b) in [tuple, list]:
             b = list(b)
         elif type(b) is Matrix:
-            if not (b.count_cols() == 1 or b.count_rows() == 1):
-                raise ValueError("Matrix dimensions incompatible with solving linear system.")
-            elif b.count_cols() == 1:
+            if b.count_cols() == 1:
                 b = b.get_cols()[0]
-            else:
+            elif b.count_rows() == 1:
                 b = b.get_rows()[0]
+            else:
+                raise ValueError("Matrix dimensions incompatible with solving linear system.")
+            
+            
         
         #A*x=b
         detA = self.determinant()
@@ -929,7 +932,7 @@ class Matrix:
             A_ith[i] = b
             x.append(Matrix(A_ith).determinant()/detA)
         
-        if vec:
+        if vec: #parameter to choose whether or not we want to return a Vector of a Matrix
             return Vector(x)
         else:
             final_data = []
@@ -952,24 +955,19 @@ class Matrix:
         """
         num_row = self.count_rows()
         num_col = self.count_cols()
-       
-
-        cols = [] #final answer
-        for j in range(num_col): #iterate through each column
-            new_entry = []
-            for i in range(num_row): #iterate through each row
-                new_entry.append(self[i][j]) #ith row jth column
-            cols.append(new_entry)
-        return cols
+        return [[self[i][j] for i in range(num_row)] for j in range(num_col)]
 
 
     def transpose(self):
         """ (self) -> (Matrix)
         Returns the transpose of the Matrix self.
         """
-        return Matrix(self.getcols())
-    
-    
+        new = Matrix()
+        new.data = self.getcols()
+        return new
+        
+
+
     def issquare(self):
         """ (self) -> (boolean)
         Returns True if the self Matrix is square. False otherwise.
@@ -981,11 +979,12 @@ class Matrix:
         """ (self) -> (boolean)
         Returns True if the self Matrix is diagonal. False otherwise.
         """
-        if not self.issquare():
-            return False
-
         num_row = self.count_rows()
         num_col = self.count_cols()
+        
+        if num_row != num_col:
+            return False
+
         for i in range(num_row):
             for j in range(num_col):
                 if i!=j and self[i][j]!=0: #if entries off of main diagonal are not identically 0
@@ -1001,7 +1000,6 @@ class Matrix:
             return False
         
         num_row = self.count_rows()
-        num_col = self.count_cols()
         for i in range(num_row):
             if self[i][i] != 1: #if main diagonal is not identically 1 
                 return False
@@ -1012,7 +1010,7 @@ class Matrix:
         """ (self) -> (boolean)
         Returns True if the self Matrix is invertible. False otherwise.
         """
-        return self.issquare() and self.determinant() != 0
+        return self.determinant() != 0
     
 
     
@@ -1023,12 +1021,8 @@ class Matrix:
         """
         if m is None: #single input defines square matrix
             m = n
-        
-        M = Matrix.zero(n, m)
-        for row_idx in range(M.count_rows()):
-            for col_idx in range(M.count_cols()):
-                M[row_idx][col_idx] = (-1)**(row_idx+col_idx)
-        return M
+        new_data = [[(-1)**(i+j) for i in range(m)] for j in range(n)]
+        return Matrix(new_data)
 
 
     @staticmethod
@@ -1038,11 +1032,7 @@ class Matrix:
         """
         if m is None: #single input defines square matrix
             m = n
-
-        new_data = []
-
-        for i in range(n): #n rows
-            new_data.append([0 for i in range(m)])
+        new_data = [[0 for i in range(m)] for j in range(n)]
         return Matrix(new_data)
 
 
@@ -1099,7 +1089,7 @@ def list_derivative(x, data):
 # In[9]:
 
 
-def riemann_integral(func, a, b, bins=100, side='mid'):
+def riemann_integral(func, a, b, bins=500, side='mid'):
     """ (function, num, num, int, str) -> (num)
     Returns an estimate for the integral of func from a to b, a<=b. The estimate is determined using
     Riemann sums. The side parameter determines the whether the bins should be right-sided, midpoint, 
@@ -1170,7 +1160,7 @@ def euler_odes(func, times, y0):
 
 # <h3>Vector Functions</h3>
 
-# In[13]:
+# In[64]:
 
 
 class VectorFunction:
@@ -1233,10 +1223,7 @@ class VectorFunction:
         """ (self, num) -> (Vector)
         Evaluates a VectorFunction at t, returns the result as a Vector.
         """
-        new_data = []
-        for func in self:
-            new_data.append(func(t))
-        return Vector(new_data)
+        return Vector([func(t) for func in self])
 
     
     def __len__(self):
@@ -1262,11 +1249,11 @@ class VectorFunction:
         self.data[key] = value
     
 
-    def __contains__(self, value):
+    def __contains__(self, func):
         """ (self, func) -> (boolean)
         Checks if the function value is one of the entries of the self VectorFunction.
         """
-        return value in self.data
+        return func in self.data
     
 
     def __iter__(self):
@@ -1307,7 +1294,7 @@ class VectorFunction:
         """ (self, VectorFunction) -> (boolean)
         VectorFunctions are not equal if they are not equal component-wise.
         """
-        return self.data != v2.data
+        return not self==v2
     
 
     def __mul__(self, a):
@@ -1322,6 +1309,7 @@ class VectorFunction:
             def temp(x):
                 return a*self[i](x)
             return temp
+
         for i in range(len(self)):
             new_data.append(make_new(i))
         return VectorFunction(new_data)
@@ -1339,6 +1327,7 @@ class VectorFunction:
             def temp(x):
                 return a*self[i](x)
             return temp
+
         for i in range(len(self)):
             new_data.append(make_new(i))
         return VectorFunction(new_data)
@@ -1356,6 +1345,7 @@ class VectorFunction:
             def temp(x):
                 return 1/a*self[i](x)
             return temp
+
         for i in range(len(self)):
             new_data.append(make_new(i))
         return VectorFunction(new_data)
@@ -1375,6 +1365,7 @@ class VectorFunction:
             def temp(x):
                 return self[i](x) + v2[i](x)
             return temp
+
         for i in range(len(self)):
             new_data.append(make_new(i))
         return VectorFunction(new_data)
@@ -1394,6 +1385,7 @@ class VectorFunction:
             def temp(x):
                 return self[i](x) - v2[i](x)
             return temp
+
         for i in range(len(self)):
             new_data.append(make_new(i))
         return VectorFunction(new_data)
@@ -1403,10 +1395,9 @@ class VectorFunction:
         """ (self) -> (func)
         Returns a function that finds the magnitude of the self VectorFunction when called.
         """
-        functions = self.data
         def new(x):
             tot = 0
-            for func in functions:
+            for func in self.data:
                 tot += func(x)**2
             return math.sqrt(tot)
         return new
@@ -1549,8 +1540,10 @@ def standard_dev(data, ave=None):
 
 def variance(data):
     """ (list) -> (float)
+    Returns the variance of the values in data.
     """
     return standard_dev(data)**2
+
 
 def standard_error(data, std=None):
     """ (list, float/None) -> (float)
@@ -1595,7 +1588,7 @@ def percent_error(actual, expected):
     return abs((actual - expected)/expected)*100
 
 
-# In[13]:
+# In[68]:
 
 
 """
@@ -1610,7 +1603,10 @@ def linear_fit(x, y):
     x and y have the same length.
     """
     N = len(x) #len(x)=len(y)
-    
+
+    if N != len(y):
+        raise ValueError('x and y must have the same length.')
+
     #The following code finds the necessary sums of data needed to find a linear fit
     sum_x = sum(x)
     sum_y = sum(y)
@@ -1699,11 +1695,7 @@ def residuals(x, y, fit):
     Finds the residuals of a best fit single-variable function with uniform error and
     returns their y-coordiantes.
     """
-    yRes = []
-    for i in range(len(x)):
-        yRes.append(y[i] - fit(x[i])) #actual - expected
-    
-    return yRes
+    return [y[i]-fit(x[i]) for i in range(len(x))]
 
 
 def normalised_residuals(x, y, fit, error):
@@ -1712,11 +1704,7 @@ def normalised_residuals(x, y, fit, error):
     returns their y-coordiantes. The error array is the standard error of the predicted values
     at each point in x.
     """
-    yRes = []
-    for i in range(len(x)):
-        yRes.append((y[i] - fit(x[i]))/error[i])
-    
-    return yRes
+    return [(y[i]-fit(x[i]))/error[i] for i in range(len(x))]
 
 
 def chi_square(x, y, fit, error):
@@ -1768,12 +1756,7 @@ def rms(x, y, fit):
     """ (list, list, function) -> (float)
     Finds the root mean square of the fit to x and y data.
     """
-    res = residuals(x, y, fit)
-    res_sqr = []
-    
-    for r in res:
-        res_sqr.append(r**2)
-        
+    res_sqr = [r**2 for r in residuals(x, y, fit)]
     return math.sqrt(mean(res_sqr))
     
 
@@ -2188,4 +2171,23 @@ def series(a_n, start, stop):
         tot += a_n(i) #value of a_n term at i
         i += 1 
     return tot
+
+
+# In[56]:
+
+
+if __name__ == '__main__':
+    import doctest
+    import time
+
+    #doctest.testmod()
+
+    #start = time.time()
+    #m1 = Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    #print(m1.transpose())
+    #print(round(time.time()-start, 10))
+
+    #start = time.time()
+    #func2()
+    #print('func2 takes:', time.time()-start)
 
